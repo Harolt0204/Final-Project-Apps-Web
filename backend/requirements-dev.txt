@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Tests and linting.
+pytest==9.2.0
+httpx==0.28.1
+ruff==0.17.4

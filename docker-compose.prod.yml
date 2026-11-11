@@ -1,0 +1,48 @@
+# Production-like stack: MySQL + the application image (API and frontend together).
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Requires JWT_SECRET, MYSQL_PASSWORD and MYSQL_ROOT_PASSWORD in `.env` or the environment.
+# The app listens on http://localhost:8080; put it behind HTTPS on a real server.
+name: thesis-management-prod
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-thesis_management}
+      MYSQL_USER: ${MYSQL_USER:-thesis_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      TZ: America/Guayaquil
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --log-bin-trust-function-creators=1
+    volumes:
+      - db_data:/var/lib/mysql
+    # No published port: only the app container reaches the database.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-thesis_app}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE:-thesis_management}?charset=utf8mb4
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
+      # Same origin as the API: no cross-origin access is needed.
+      CORS_ORIGINS: ""
+      TZ: America/Guayaquil
+    ports:
+      - "8080:8000"
+
+volumes:
+  db_data:

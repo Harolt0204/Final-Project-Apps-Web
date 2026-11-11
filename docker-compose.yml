@@ -1,0 +1,31 @@
+# Local development database. The API and the frontend run on the host.
+# Port 3307 on the host avoids clashing with a locally installed MySQL (3306).
+services:
+  db:
+    image: mysql:8.0
+    container_name: thesis-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-thesis_management}
+      MYSQL_USER: ${MYSQL_USER:-thesis_app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-thesis_dev_password}
+      TZ: America/Guayaquil
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      # Alembic creates triggers as a non-SUPER user, which needs this flag
+      # while binary logging is on (MySQL 8 default).
+      - --log-bin-trust-function-creators=1
+    ports:
+      - "${MYSQL_HOST_PORT:-3307}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db_data:

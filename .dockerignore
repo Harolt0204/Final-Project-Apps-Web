@@ -1,0 +1,17 @@
+# Keep secrets, local environments and course material out of the image.
+.env
+.git
+.github
+.claude
+**/.venv
+**/venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+frontend/dist
+backend/tests
+*.pdf
+*.pptx
+documentation.md
+docs

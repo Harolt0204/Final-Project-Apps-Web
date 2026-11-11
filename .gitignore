@@ -1,0 +1,30 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Reference material kept locally (not part of the repository): the proposal
+# documents and the analysis of the previous project.
+*.pdf
+*.pptx
+documentation.md
+
+# Local tool configuration
+.claude/
