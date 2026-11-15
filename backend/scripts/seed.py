@@ -45,8 +45,9 @@ from app.models import (
     User,
     UserRole,
 )
+from app.schemas.users import username_from_email
 
-DEV_PASSWORD = "YachayDev2026!"
+DEV_PASSWORD = "123"
 DOMAIN = "yachaytech.edu.ec"
 
 # School codes from the catalog that migration 0004 loads.
@@ -171,7 +172,7 @@ def main() -> None:
 
     schools = {s.code: s for s in db.scalars(select(School))}
     password_hash = hash_password(DEV_PASSWORD)  # hash once: bcrypt is slow on purpose
-    admin = User(email=f"admin@{DOMAIN}", password_hash=password_hash, role=UserRole.ADMIN)
+    admin = User(username="admin", password_hash=password_hash, role=UserRole.ADMIN)
     db.add(admin)
 
     periods = [
@@ -198,7 +199,7 @@ def main() -> None:
         db.add(prof)
         db.add(
             User(
-                email=prof.email,
+                username=username_from_email(prof.email),
                 password_hash=password_hash,
                 role=UserRole.PROFESSOR,
                 professor=prof,
@@ -219,7 +220,7 @@ def main() -> None:
         db.add(student)
         db.add(
             User(
-                email=student.email,
+                username=username_from_email(student.email),
                 password_hash=password_hash,
                 role=UserRole.STUDENT,
                 student=student,

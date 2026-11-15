@@ -17,9 +17,10 @@ from app.models import (
     User,
     UserRole,
 )
+from app.schemas.users import username_from_email
 from tests.conftest import PASSWORD, login
 
-ADMIN = "admin@yachaytech.edu.ec"
+ADMIN = "admin"
 
 
 def email(key: str) -> str:
@@ -49,7 +50,7 @@ def setup(db, world):
         db.add(prof)
         db.add(
             User(
-                email=prof.email,
+                username=username_from_email(prof.email),
                 password_hash=hash_password(PASSWORD),
                 role=UserRole.PROFESSOR,
                 professor=prof,
@@ -91,7 +92,7 @@ def test_rooms(client, admin, world):
     again = client.post("/api/rooms", headers=admin, json={"name": "Lab 3", "building": "Science"})
     assert again.status_code == 409
 
-    student = login(client, email("s1"))
+    student = login(client, "s1")
     assert [x["name"] for x in client.get("/api/rooms", headers=student).json()] == ["Lab 3"]
     assert (
         client.post("/api/rooms", headers=student, json={"name": "X", "building": "Y"}).status_code
@@ -172,7 +173,7 @@ def test_calendar_visibility(client, admin, setup):
     schedule(client, admin, setup["t2"], **in_room(b, at(4, 9)))
 
     def thesis_ids(key):
-        rows = client.get("/api/defenses", headers=login(client, email(key))).json()
+        rows = client.get("/api/defenses", headers=login(client, key)).json()
         return [row["thesis_id"] for row in rows]
 
     assert thesis_ids("pC") == [setup["t1"], setup["t2"]]  # jury of both
@@ -202,7 +203,7 @@ def past_defense(db, setup):
 def grade(client, key, thesis_id, value):
     return client.put(
         f"/api/theses/{thesis_id}/defense/grade",
-        headers=login(client, email(key)),
+        headers=login(client, key),
         json={"grade": value},
     )
 
@@ -226,7 +227,7 @@ def test_grades_close_the_thesis(client, admin, db, past_defense):
     assert (last.to_status, last.comment) == (ThesisStatus.DEFENDED, "Final grade 8.50 (passed)")
 
     # The student sees the final grade, not each jury member's.
-    student = client.get(f"/api/theses/{past_defense}", headers=login(client, email("s1"))).json()
+    student = client.get(f"/api/theses/{past_defense}", headers=login(client, "s1")).json()
     assert student["defense"]["final_grade"] == "8.50"
     assert all(rv["grade"] is None for rv in student["reviewers"])
 

@@ -12,11 +12,11 @@ from app.core.config import Settings
 from app.main import mount_frontend
 from tests.conftest import PASSWORD, login
 
-S1 = "s1@yachaytech.edu.ec"
+S1 = "s1"
 
 
-def try_login(client, email, password):
-    return client.post("/api/auth/login", data={"username": email, "password": password})
+def try_login(client, username, password):
+    return client.post("/api/auth/login", data={"username": username, "password": password})
 
 
 def test_login_is_throttled_after_repeated_failures(client, world):
@@ -26,7 +26,7 @@ def test_login_is_throttled_after_repeated_failures(client, world):
     assert blocked.status_code == 429
     assert int(blocked.headers["Retry-After"]) > 0
     # Other accounts are not affected.
-    assert try_login(client, "s2@yachaytech.edu.ec", PASSWORD).status_code == 200
+    assert try_login(client, "s2", PASSWORD).status_code == 200
 
 
 def test_success_resets_the_failure_counter(client, world):
@@ -61,7 +61,7 @@ def test_password_change_revokes_old_tokens(client, world):
 
 def test_admin_reset_closes_user_sessions(client, world):
     student = login(client, S1)
-    admin = login(client, "admin@yachaytech.edu.ec")
+    admin = login(client, "admin")
     time.sleep(1.1)
     s1_id = world["users"]["s1"].user_id
     r = client.patch(f"/api/users/{s1_id}", headers=admin, json={"password": "reset-by-admin-123"})

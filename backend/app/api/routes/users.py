@@ -19,7 +19,7 @@ router = APIRouter(
 
 @router.get("", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db)) -> list[User]:
-    return list(db.scalars(select(User).order_by(User.role, User.email)))
+    return list(db.scalars(select(User).order_by(User.role, User.username)))
 
 
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -30,7 +30,7 @@ def create_user(data: UserCreate, db: Session = Depends(get_db)) -> User:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Professor not found")
 
     user = User(
-        email=data.email.lower(),
+        username=data.username,
         password_hash=hash_password(data.password),
         role=data.role,
         student_id=data.student_id,

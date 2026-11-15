@@ -11,9 +11,10 @@ from app.models import (
     User,
     UserRole,
 )
+from app.schemas.users import username_from_email
 from tests.conftest import PASSWORD, login
 
-ADMIN = "admin@yachaytech.edu.ec"
+ADMIN = "admin"
 
 
 def email(key: str) -> str:
@@ -34,7 +35,7 @@ def extra_profs(db, world):
         db.add(prof)
         db.add(
             User(
-                email=prof.email,
+                username=username_from_email(prof.email),
                 password_hash=hash_password(PASSWORD),
                 role=UserRole.PROFESSOR,
                 professor=prof,
@@ -97,10 +98,10 @@ def test_invalid_transition_and_permissions(client, admin, world):
     t1 = world["t1"].thesis_id
     assert move(client, admin, t1, "DEFENDED").status_code == 409
 
-    student = login(client, email("s1"))
+    student = login(client, "s1")
     assert move(client, student, t1, "TOPIC_APPROVED").status_code == 403
     # A professor outside the thesis does not even see it.
-    outsider = login(client, email("pC"))
+    outsider = login(client, "pC")
     assert move(client, outsider, t1, "TOPIC_APPROVED").status_code == 404
 
 
@@ -113,7 +114,7 @@ def test_rejection_requires_a_comment(client, admin, world):
 
 def test_tutor_moves_thesis_i_to_ii_but_cannot_approve_topics(client, world, db):
     t1 = world["t1"]
-    tutor = login(client, email("pA"))
+    tutor = login(client, "pA")
     assert move(client, tutor, t1.thesis_id, "TOPIC_APPROVED").status_code == 403
 
     t1.status = ThesisStatus.THESIS_I
@@ -142,7 +143,7 @@ def test_review_needs_full_committee(client, admin, world, db, extra_profs):
 
 def test_workflow_shows_what_is_missing(client, world):
     t1 = world["t1"].thesis_id
-    student = login(client, email("s1"))
+    student = login(client, "s1")
     body = client.get(f"/api/theses/{t1}/workflow", headers=student).json()
     assert body["status"] == "PROPOSED"
     options = {o["to_status"]: o for o in body["options"]}
@@ -188,7 +189,7 @@ def test_committee_rules(client, admin, world, db, extra_profs):
     assert roles == {"pB Prof": "Committee", "pC Prof": "President", "pD Prof": "Committee"}
 
     # Only admins manage the committee.
-    tutor = login(client, email("pA"))
+    tutor = login(client, "pA")
     assert put_reviewer(client, tutor, t1.thesis_id, extra_profs["pE"]).status_code == 403
 
 
@@ -196,13 +197,13 @@ def test_committee_rules(client, admin, world, db, extra_profs):
 
 
 def test_observation_cycle(client, world, in_review):
-    president = login(client, email("pB"))
-    member = login(client, email("pC"))
-    student = login(client, email("s1"))
+    president = login(client, "pB")
+    member = login(client, "pC")
+    student = login(client, "s1")
     base = f"/api/theses/{in_review}/observations"
 
     # The tutor is not a reviewer and cannot write observations.
-    tutor = login(client, email("pA"))
+    tutor = login(client, "pA")
     assert client.post(base, headers=tutor, json={"text": "x"}).status_code == 403
 
     r = client.post(base, headers=president, json={"text": "Clarify the dataset split."})
@@ -213,7 +214,7 @@ def test_observation_cycle(client, world, in_review):
 
     # Only the author resolves, and only after the student responds.
     assert client.post(f"{base}/{oid}/resolve", headers=president).status_code == 409
-    other_student = login(client, email("s2"))
+    other_student = login(client, "s2")
     r = client.post(f"{base}/{oid}/response", headers=other_student, json={"response": "x"})
     assert r.status_code == 404
     r = client.post(f"{base}/{oid}/response", headers=student, json={"response": "Done, see 3.2"})
@@ -232,8 +233,8 @@ def test_observation_cycle(client, world, in_review):
 
 
 def test_ready_for_defense_gate(client, admin, world, in_review):
-    president = login(client, email("pB"))
-    student = login(client, email("s1"))
+    president = login(client, "pB")
+    student = login(client, "s1")
     base = f"/api/theses/{in_review}"
     oid = client.post(
         f"{base}/observations", headers=president, json={"text": "Fix figure 4"}
@@ -250,7 +251,7 @@ def test_ready_for_defense_gate(client, admin, world, in_review):
     client.post(f"{base}/observations/{oid}/response", headers=student, json={"response": "Ok"})
     client.post(f"{base}/observations/{oid}/resolve", headers=president)
     for key in ("pB", "pC", "pD"):
-        r = client.put(f"{base}/approval", headers=login(client, email(key)))
+        r = client.put(f"{base}/approval", headers=login(client, key))
         assert r.status_code == 200, r.text
 
     # Sprint 4: the gate also needs an accepted similarity check.
@@ -264,14 +265,14 @@ def test_ready_for_defense_gate(client, admin, world, in_review):
 
 def test_return_for_changes_clears_approvals(client, admin, world, in_review):
     base = f"/api/theses/{in_review}"
-    client.put(f"{base}/approval", headers=login(client, email("pC")))
+    client.put(f"{base}/approval", headers=login(client, "pC"))
     r = move(client, admin, in_review, "THESIS_II", "Major revision of chapter 4")
     assert r.status_code == 200
     assert all(rv["approved_at"] is None for rv in r.json()["reviewers"])
 
 
 def test_reviewer_with_observations_cannot_be_removed(client, admin, world, in_review):
-    member = login(client, email("pC"))
+    member = login(client, "pC")
     client.post(f"/api/theses/{in_review}/observations", headers=member, json={"text": "Typo"})
     pc = world["profs"]["pC"].professor_id
     r = client.delete(f"/api/theses/{in_review}/reviewers/{pc}", headers=admin)

@@ -13,7 +13,7 @@ from app.models import (
 )
 from tests.conftest import login
 
-ADMIN = "admin@yachaytech.edu.ec"
+ADMIN = "admin"
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def data(db, world):
 
 
 def test_reports_are_admin_only(client, world):
-    prof = login(client, "pA@yachaytech.edu.ec")
+    prof = login(client, "pA")
     for path in ("overview", "tutor-workload", "grades-by-school", "room-availability"):
         assert client.get(f"/api/reports/{path}", headers=prof).status_code == 403
 

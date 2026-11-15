@@ -77,8 +77,9 @@ npm run dev
 
 ### Cuentas de demostración
 
-`scripts/seed.py` crea un administrador (`admin@yachaytech.edu.ec`), 5 profesores y
-7 estudiantes ficticios. Todos usan la contraseña `DEV_PASSWORD` definida en ese archivo.
+`scripts/seed.py` crea un administrador (usuario `admin`), 5 profesores y
+7 estudiantes ficticios. Se inicia sesión con el usuario `nombre.apellido` (sin
+`@yachaytech.edu.ec`). Todos usan la contraseña `DEV_PASSWORD` definida en ese archivo.
 **Solo para desarrollo local.** Las asignaciones reproducen el ejemplo de la propuesta
 (diapositiva 9): por ejemplo, Andrea Benítez es tutora de la tesis 1 y presidenta del
 tribunal de la tesis 2, y Lucía Paredes es miembro del comité de la tesis 1 y co-tutora de
@@ -124,7 +125,7 @@ todo funciona como un solo servicio y un solo origen. Al arrancar aplica las mig
 # En .env: MYSQL_ROOT_PASSWORD, MYSQL_PASSWORD y un JWT_SECRET aleatorio (>= 32 caracteres)
 docker compose -f docker-compose.prod.yml up -d --build
 # Primer administrador (la contraseña se pide de forma interactiva):
-docker compose -f docker-compose.prod.yml exec app python -m scripts.create_admin --email coordinacion@yachaytech.edu.ec
+docker compose -f docker-compose.prod.yml exec app python -m scripts.create_admin --username coordinacion
 ```
 
 La aplicación queda en <http://localhost:8080>. En un servidor real debe ir detrás de

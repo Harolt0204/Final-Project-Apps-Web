@@ -1,6 +1,6 @@
 """Brute-force protection for the login endpoint (OWASP API4:2023).
 
-After `login_max_failures` failed attempts for the same e-mail from the same client IP
+After `login_max_failures` failed attempts for the same user name from the same client IP
 within `login_window_seconds`, further attempts get HTTP 429 until the window passes.
 A successful login clears the counter.
 
@@ -26,23 +26,23 @@ class LoginLimiter:
             attempts.popleft()
         return attempts
 
-    def retry_after(self, ip: str, email: str) -> int | None:
+    def retry_after(self, ip: str, username: str) -> int | None:
         """Seconds until a new attempt is allowed, or None if it is allowed now."""
-        key, now = (ip, email.lower()), time.monotonic()
+        key, now = (ip, username.lower()), time.monotonic()
         with self._lock:
             attempts = self._prune(key, now)
             if len(attempts) < self.max_failures:
                 return None
             return max(1, int(self.window - (now - attempts[0])) + 1)
 
-    def failed(self, ip: str, email: str) -> None:
-        key, now = (ip, email.lower()), time.monotonic()
+    def failed(self, ip: str, username: str) -> None:
+        key, now = (ip, username.lower()), time.monotonic()
         with self._lock:
             self._prune(key, now).append(now)
 
-    def succeeded(self, ip: str, email: str) -> None:
+    def succeeded(self, ip: str, username: str) -> None:
         with self._lock:
-            self._failures.pop((ip, email.lower()), None)
+            self._failures.pop((ip, username.lower()), None)
 
     def reset(self) -> None:
         with self._lock:

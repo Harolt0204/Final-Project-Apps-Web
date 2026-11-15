@@ -14,7 +14,7 @@ export type ThesisStatus =
 
 export interface User {
   user_id: number;
-  email: string;
+  username: string;
   role: UserRole;
   display_name: string;
   student_id: number | null;
@@ -310,17 +310,17 @@ const json = (method: string, body: unknown): RequestInit => ({
 });
 
 export const api = {
-  login: (email: string, password: string) =>
+  login: (username: string, password: string) =>
     request<{ access_token: string; user: User }>("/api/auth/login", {
       method: "POST",
-      body: new URLSearchParams({ username: email, password }),
+      body: new URLSearchParams({ username, password }),
     }),
   me: () => request<User>("/api/auth/me"),
   theses: () => request<ThesisSummary[]>("/api/theses"),
   thesis: (id: number) => request<ThesisDetail>(`/api/theses/${id}`),
   users: () => request<User[]>("/api/users"),
   createUser: (data: {
-    email: string;
+    username: string;
     password: string;
     role: UserRole;
     student_id?: number;

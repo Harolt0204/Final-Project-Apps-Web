@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { api, ApiError, STATUS_LABEL, type Professor, type ThesisDetail } from "../api";
+import { api, ApiError, type Professor, type ThesisDetail } from "../api";
 import { useAuth } from "../auth";
 import CommitteePanel from "../components/CommitteePanel";
 import DefensePanel from "../components/DefensePanel";
@@ -8,10 +8,9 @@ import ObservationsPanel from "../components/ObservationsPanel";
 import RequirementsPanel from "../components/RequirementsPanel";
 import SimilarityPanel from "../components/SimilarityPanel";
 import { StatusBadge, StatusStepper } from "../components/Status";
+import { GeneralInfoPanel, StatusHistoryPanel, TutorFacts } from "../components/ThesisInfo";
 import WorkflowPanel from "../components/WorkflowPanel";
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+import EditTopicForm from "../components/EditTopicForm";
 
 const CLOSED = ["DEFENDED", "REJECTED"];
 
@@ -47,7 +46,8 @@ export default function ThesisDetailPage() {
   if (!thesis || !user) return <p className="muted">Loading…</p>;
 
   const isAdmin = user.role === "admin";
-  const canEdit = isAdmin || (user.role === "student" && thesis.status === "PROPOSED");
+  // Students edit their topic from the home dashboard; here only admins can.
+  const canEdit = isAdmin;
 
   return (
     <>
@@ -88,35 +88,14 @@ export default function ThesisDetailPage() {
       <DefensePanel thesis={thesis} user={user} onChange={setThesis} />
 
       <div className="two-col">
-        <section className="panel">
-          <h2>General information</h2>
-          <dl className="facts">
-            <dt>Student</dt>
-            <dd>
-              {thesis.student.full_name}
-              <br />
-              <span className="muted">{thesis.student.email}</span>
-            </dd>
-            <dt>School</dt>
-            <dd>{thesis.student.school?.name ?? "—"}</dd>
-            <dt>Academic periods</dt>
-            <dd>{thesis.periods.map((p) => p.name).join(", ") || "—"}</dd>
-            <dt>Abstract</dt>
-            <dd className="prewrap">{thesis.abstract ?? "—"}</dd>
-          </dl>
-        </section>
+        <GeneralInfoPanel thesis={thesis} />
 
         <section className="panel">
           <h2>Tutors and committee</h2>
           {isAdmin && !CLOSED.includes(thesis.status) ? (
             <TutorManager thesis={thesis} onChange={setThesis} />
           ) : (
-            <dl className="facts">
-              <dt>Tutor</dt>
-              <dd>{thesis.tutors.find((t) => t.role === "Tutor")?.professor.full_name ?? "Not assigned"}</dd>
-              <dt>Co-tutor</dt>
-              <dd>{thesis.tutors.find((t) => t.role === "Co-Tutor")?.professor.full_name ?? "—"}</dd>
-            </dl>
+            <TutorFacts thesis={thesis} />
           )}
           <CommitteePanel thesis={thesis} user={user} onChange={setThesis} />
         </section>
@@ -127,87 +106,8 @@ export default function ThesisDetailPage() {
       <SimilarityPanel thesis={thesis} user={user} onChanged={load} />
       <RequirementsPanel thesisId={thesis.thesis_id} canEdit={isAdmin} onChanged={load} />
 
-      <section className="panel">
-        <h2>Status history</h2>
-        {thesis.status_history.length === 0 ? (
-          <p className="muted">No status changes recorded.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="grid">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Change</th>
-                  <th>By</th>
-                  <th>Comment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...thesis.status_history].reverse().map((h, i) => (
-                  <tr key={i}>
-                    <td>{formatDate(h.changed_at)}</td>
-                    <td>
-                      {h.from_status ? `${STATUS_LABEL[h.from_status]} → ` : ""}
-                      {STATUS_LABEL[h.to_status]}
-                    </td>
-                    <td>{h.changed_by_name}</td>
-                    <td>{h.comment ?? ""}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <StatusHistoryPanel thesis={thesis} />
     </>
-  );
-}
-
-function EditTopicForm({
-  thesis,
-  isAdmin,
-  onCancel,
-  onSaved,
-}: {
-  thesis: ThesisDetail;
-  isAdmin: boolean;
-  onCancel: () => void;
-  onSaved: (t: ThesisDetail) => void;
-}) {
-  const [title, setTitle] = useState(thesis.title);
-  const [abstract, setAbstract] = useState(thesis.abstract ?? "");
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    try {
-      onSaved(await api.updateThesis(thesis.thesis_id, { title, abstract: abstract || null }));
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
-
-  return (
-    <form className="form-grid" onSubmit={submit}>
-      <label className="full">
-        Title
-        <input value={title} onChange={(e) => setTitle(e.target.value)} minLength={5} maxLength={255} required />
-      </label>
-      <label className="full">
-        Abstract
-        <textarea value={abstract} onChange={(e) => setAbstract(e.target.value)} rows={6} maxLength={5000} />
-      </label>
-      {!isAdmin && <p className="muted full">You can edit the topic until it is approved.</p>}
-      {error && <p className="notice notice-error full">{error}</p>}
-      <div className="actions full">
-        <button type="submit" className="button">
-          Save
-        </button>
-        <button type="button" className="button button-secondary" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </form>
   );
 }
 

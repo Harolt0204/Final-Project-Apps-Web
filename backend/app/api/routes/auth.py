@@ -20,7 +20,7 @@ limiter = LoginLimiter(_settings.login_max_failures, _settings.login_window_seco
 
 INVALID_LOGIN = HTTPException(
     status.HTTP_401_UNAUTHORIZED,
-    "Incorrect email or password",
+    "Incorrect user name or password",
     headers={"WWW-Authenticate": "Bearer"},
 )
 
@@ -43,10 +43,10 @@ def login(
     form: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ) -> TokenOut:
-    """Exchange e-mail (sent as `username`, OAuth2 form) and password for a JWT.
-    Repeated failures for the same e-mail and IP are throttled with HTTP 429."""
-    ip, email = _client_ip(request), form.username.strip()
-    wait = limiter.retry_after(ip, email)
+    """Exchange user name (name.lastname, OAuth2 form field `username`) and password for
+    a JWT. Repeated failures for the same user name and IP are throttled with HTTP 429."""
+    ip, username = _client_ip(request), form.username.strip().lower()
+    wait = limiter.retry_after(ip, username)
     if wait is not None:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
@@ -54,14 +54,14 @@ def login(
             headers={"Retry-After": str(wait)},
         )
 
-    user = db.scalars(select(User).where(func.lower(User.email) == email.lower())).first()
-    # Same message for unknown e-mail, wrong password or disabled account, so the
+    user = db.scalars(select(User).where(func.lower(User.username) == username)).first()
+    # Same message for unknown user name, wrong password or disabled account, so the
     # endpoint does not reveal which accounts exist.
     if user is None or not user.is_active or not verify_password(form.password, user.password_hash):
-        limiter.failed(ip, email)
+        limiter.failed(ip, username)
         raise INVALID_LOGIN
 
-    limiter.succeeded(ip, email)
+    limiter.succeeded(ip, username)
     user.last_login_at = now_local()
     db.commit()
     return _token_for(user)

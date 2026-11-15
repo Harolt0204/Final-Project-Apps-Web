@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
 import { api, type ThesisSummary } from "../api";
 import { useAuth } from "../auth";
-import RequirementsPanel from "../components/RequirementsPanel";
-import { StatusBadge, StatusStepper } from "../components/Status";
+import { Stat } from "../components/Stats";
+import { StatusBadge } from "../components/Status";
+import ThesisDashboard from "../components/ThesisDashboard";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -11,77 +12,23 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.theses().then(setTheses).catch((e: Error) => setError(e.message));
+    api
+      .theses()
+      .then(setTheses)
+      .catch((e: Error) => setError(e.message));
   }, []);
 
   if (!user) return null;
+  // Professors have no home page: their work starts at My Theses.
+  if (user.role === "professor") return <Navigate to="/theses" replace />;
 
   return (
     <>
-      <section className="panel hero">
-        <div className="panel-header" />
-        <div className="hero-body">
-          <div>
-            <h1>Thesis Management</h1>
-            <p>Undergraduate thesis and graduation process — from topic registration to the final defense grade.</p>
-          </div>
-        </div>
-        <div className="panel-footer">
-          <strong>{user.display_name}</strong>
-        </div>
-      </section>
-
       {error && <p className="notice notice-error">{error}</p>}
       {!theses && !error && <p className="muted">Loading…</p>}
 
-      {theses && user.role === "student" && <StudentHome thesis={theses[0]} />}
-      {user.role === "student" && user.student_id && (
-        <RequirementsPanel studentId={user.student_id} canEdit={false} title="My graduation requirements" />
-      )}
-      {theses && user.role === "professor" && <ProfessorHome theses={theses} />}
+      {theses && user.role === "student" && <ThesisDashboard summary={theses[0]} />}
       {theses && user.role === "admin" && <AdminHome theses={theses} />}
-    </>
-  );
-}
-
-function StudentHome({ thesis }: { thesis?: ThesisSummary }) {
-  if (!thesis) {
-    return (
-      <section className="panel">
-        <h2>My thesis</h2>
-        <p>You have not registered a thesis topic yet.</p>
-        <Link to="/theses/new" className="button">
-          Register my thesis topic
-        </Link>
-      </section>
-    );
-  }
-  return (
-    <section className="panel">
-      <h2>My thesis</h2>
-      <p>
-        <Link to={`/theses/${thesis.thesis_id}`}>{thesis.title}</Link>
-      </p>
-      <StatusStepper status={thesis.status} />
-    </section>
-  );
-}
-
-function ProfessorHome({ theses }: { theses: ThesisSummary[] }) {
-  const count = (role: string) => theses.filter((t) => t.my_roles.includes(role)).length;
-  return (
-    <>
-      <div className="stats">
-        <Stat label="As tutor" value={count("Tutor")} />
-        <Stat label="As co-tutor" value={count("Co-Tutor")} />
-        <Stat label="As committee president" value={count("President")} />
-        <Stat label="As committee member" value={count("Committee")} />
-      </div>
-      <ul className="quick-links">
-        <li>
-          <Link to="/theses">View my theses</Link>
-        </li>
-      </ul>
     </>
   );
 }
@@ -96,7 +43,10 @@ function AdminHome({ theses }: { theses: ThesisSummary[] }) {
       <div className="stats">
         <Stat label="Theses" value={theses.length} />
         <Stat label="In committee review" value={byStatus.IN_REVIEW ?? 0} />
-        <Stat label="Ready for defense" value={byStatus.READY_FOR_DEFENSE ?? 0} />
+        <Stat
+          label="Ready for defense"
+          value={byStatus.READY_FOR_DEFENSE ?? 0}
+        />
         <Stat label="Defended" value={byStatus.DEFENDED ?? 0} />
       </div>
       <ul className="quick-links">
@@ -107,7 +57,8 @@ function AdminHome({ theses }: { theses: ThesisSummary[] }) {
           <Link to="/theses/new">Register a thesis</Link>
         </li>
         <li>
-          <Link to="/students">Students</Link> · <Link to="/professors">Professors</Link> ·{" "}
+          <Link to="/students">Students</Link> ·{" "}
+          <Link to="/professors">Professors</Link> ·{" "}
           <Link to="/periods">Academic periods</Link>
         </li>
         <li>
@@ -122,20 +73,12 @@ function AdminHome({ theses }: { theses: ThesisSummary[] }) {
             .slice(0, 5)
             .map((t) => (
               <li key={t.thesis_id}>
-                <Link to={`/theses/${t.thesis_id}`}>{t.title}</Link> <StatusBadge status={t.status} />
+                <Link to={`/theses/${t.thesis_id}`}>{t.title}</Link>{" "}
+                <StatusBadge status={t.status} />
               </li>
             ))}
         </ul>
       </section>
     </>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="stat">
-      <span className="stat-value">{value}</span>
-      <span className="stat-label">{label}</span>
-    </div>
   );
 }

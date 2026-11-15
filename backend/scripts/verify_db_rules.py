@@ -100,8 +100,8 @@ def main() -> int:
             (
                 "User account linked to the person of its role",
                 CHECK,
-                f"INSERT INTO users (email, password_hash, role, student_id) "
-                f"VALUES ('check@example.org', 'x', 'admin', {student_id})",
+                f"INSERT INTO users (username, password_hash, role, student_id) "
+                f"VALUES ('check.user', 'x', 'admin', {student_id})",
             ),
             (
                 "In-person defense needs a room",

@@ -4,7 +4,7 @@ import { useAuth } from "../auth";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      await login(username, password);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -28,19 +28,24 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-banner">
-          <span className="brand-title">Thesis Management</span>
-          <span className="brand-sub">Sistema de gestión de tesis · Yachay Tech</span>
+          <img src="/logo.png" alt="Yachay Tech" className="login-logo" />
+          <div className="login-brand">
+            <span className="brand-title">Thesis Management</span>
+            <span className="brand-sub">Yachay Tech</span>
+          </div>
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           <h1>Log In</h1>
           <label>
-            Institutional e-mail
+            User Name
             <input
-              type="email"
+              type="text"
               autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name.lastname@yachaytech.edu.ec"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="name.lastname"
               required
             />
           </label>

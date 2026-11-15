@@ -15,10 +15,13 @@ export default function ObservationsPanel({
   thesis,
   user,
   onChanged,
+  alwaysShow = false,
 }: {
   thesis: ThesisDetail;
   user: User;
   onChanged: () => void;
+  /** Render the panel even with no observations (e.g. as a tab of the student home). */
+  alwaysShow?: boolean;
 }) {
   const [items, setItems] = useState<Observation[] | null>(null);
   const [text, setText] = useState("");
@@ -52,7 +55,7 @@ export default function ObservationsPanel({
   }
 
   if (!items) return null;
-  if (items.length === 0 && !(inReview && isReviewer)) return null;
+  if (items.length === 0 && !(inReview && isReviewer) && !alwaysShow) return null;
 
   const open = items.filter((o) => o.status !== "RESOLVED").length;
 

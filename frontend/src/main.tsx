@@ -9,6 +9,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import PeoplePage from "./pages/PeoplePage";
 import PeriodsPage from "./pages/PeriodsPage";
+import ProfessorThesisPage from "./pages/ProfessorThesisPage";
 import ProfilePage from "./pages/ProfilePage";
 import ReportsPage from "./pages/ReportsPage";
 import RegisterThesisPage from "./pages/RegisterThesisPage";
@@ -21,6 +22,13 @@ import UsersPage from "./pages/UsersPage";
 import "./styles.css";
 
 /** Client-side guard for navigation only; the API enforces every permission itself. */
+/** Professors see a thesis as a dashboard (like the student home); admins get the
+ * full management page. */
+function ThesisRoute() {
+  const { user } = useAuth();
+  return user?.role === "professor" ? <ProfessorThesisPage /> : <ThesisDetailPage />;
+}
+
 function RequireAuth({ children, roles }: { children: ReactNode; roles?: UserRole[] }) {
   const { user, loading } = useAuth();
   if (loading) return <p className="muted center">Loading…</p>;
@@ -43,9 +51,24 @@ createRoot(document.getElementById("root")!).render(
             }
           >
             <Route index element={<HomePage />} />
-            <Route path="theses" element={<ThesesPage />} />
+            {/* Students follow their thesis from the home dashboard, not these pages. */}
+            <Route
+              path="theses"
+              element={
+                <RequireAuth roles={["admin", "professor"]}>
+                  <ThesesPage />
+                </RequireAuth>
+              }
+            />
             <Route path="theses/new" element={<RegisterThesisPage />} />
-            <Route path="theses/:id" element={<ThesisDetailPage />} />
+            <Route
+              path="theses/:id"
+              element={
+                <RequireAuth roles={["admin", "professor"]}>
+                  <ThesisRoute />
+                </RequireAuth>
+              }
+            />
             <Route
               path="students"
               element={
@@ -70,8 +93,22 @@ createRoot(document.getElementById("root")!).render(
                 </RequireAuth>
               }
             />
-            <Route path="defenses" element={<DefensesPage />} />
-            <Route path="profile" element={<ProfilePage />} />
+            <Route
+              path="defenses"
+              element={
+                <RequireAuth roles={["admin", "professor"]}>
+                  <DefensesPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="profile"
+              element={
+                <RequireAuth roles={["admin"]}>
+                  <ProfilePage />
+                </RequireAuth>
+              }
+            />
             {(["overview", "workload", "grades", "rooms"] as const).map((view) => (
               <Route
                 key={view}

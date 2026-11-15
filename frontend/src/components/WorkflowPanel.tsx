@@ -8,9 +8,12 @@ const ACTOR_LABEL: Record<string, string> = { admin: "coordination", tutor: "the
 export default function WorkflowPanel({
   thesis,
   onChange,
+  emptyText,
 }: {
   thesis: ThesisDetail;
   onChange: (t: ThesisDetail) => void;
+  /** Shown under the heading when there is no next step; without it the panel hides. */
+  emptyText?: string;
 }) {
   const [options, setOptions] = useState<WorkflowOption[] | null>(null);
   const [pending, setPending] = useState<WorkflowOption | null>(null);
@@ -25,7 +28,16 @@ export default function WorkflowPanel({
   }, [thesis]);
 
   if (!options || options.length === 0) {
-    return error ? <p className="notice notice-error">{error}</p> : null;
+    if (error) return <p className="notice notice-error">{error}</p>;
+    if (options && emptyText) {
+      return (
+        <div className="workflow">
+          <h2>Next steps</h2>
+          <p className="muted">{emptyText}</p>
+        </div>
+      );
+    }
+    return null;
   }
 
   async function apply(option: WorkflowOption, text: string) {

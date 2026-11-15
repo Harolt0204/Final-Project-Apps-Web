@@ -24,13 +24,15 @@ export default function RegisterThesisPage() {
       api.people<Student>("students").then((all) => setStudents(all.filter((s) => !s.has_thesis)));
       api.periods().then(setPeriods);
     } else {
-      // A student who already registered goes to their thesis instead.
+      // A student who already registered goes back to the home dashboard.
       api.theses().then((t) => setExisting(t[0]?.thesis_id ?? null));
     }
   }, [isAdmin]);
 
   if (user?.role === "professor") return <Navigate to="/theses" replace />;
-  if (existing) return <Navigate to={`/theses/${existing}`} replace />;
+  // A student's thesis lives on the home dashboard; admins go to the thesis page.
+  if (existing) return <Navigate to="/" replace />;
+  const back = isAdmin ? "/theses" : "/";
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -42,7 +44,7 @@ export default function RegisterThesisPage() {
         abstract: abstract || null,
         ...(isAdmin ? { student_id: Number(studentId), period_ids: periodIds } : {}),
       });
-      navigate(`/theses/${thesis.thesis_id}`);
+      navigate(isAdmin ? `/theses/${thesis.thesis_id}` : "/");
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -55,7 +57,7 @@ export default function RegisterThesisPage() {
   return (
     <section className="panel">
       <p className="breadcrumb">
-        <Link to="/theses">Theses</Link> › Register
+        <Link to={back}>{isAdmin ? "Theses" : "Home"}</Link> › Register
       </p>
       <h1>Register thesis topic</h1>
       <p className="muted">
@@ -99,7 +101,7 @@ export default function RegisterThesisPage() {
           <button type="submit" className="button" disabled={busy}>
             Register topic
           </button>
-          <Link to="/theses" className="button button-secondary">
+          <Link to={back} className="button button-secondary">
             Cancel
           </Link>
         </div>

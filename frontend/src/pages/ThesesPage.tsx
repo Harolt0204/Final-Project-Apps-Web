@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate } from "react-router";
+import { Link } from "react-router";
 import { api, STATUS_FLOW, STATUS_LABEL, type ThesisStatus, type ThesisSummary } from "../api";
 import { useAuth } from "../auth";
 import { StatusBadge } from "../components/Status";
@@ -23,11 +23,6 @@ export default function ThesesPage() {
         (!q || t.title.toLowerCase().includes(q) || t.student.full_name.toLowerCase().includes(q)),
     );
   }, [theses, query, status]);
-
-  // A student has at most one thesis: go straight to it, or to registration.
-  if (user?.role === "student" && theses) {
-    return <Navigate to={theses.length ? `/theses/${theses[0].thesis_id}` : "/theses/new"} replace />;
-  }
 
   return (
     <section className="panel">

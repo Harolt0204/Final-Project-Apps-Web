@@ -5,13 +5,13 @@ export function StatusBadge({ status }: { status: ThesisStatus }) {
 }
 
 /** Where the thesis stands in the graduation workflow (proposal, Fig. 1). */
-export function StatusStepper({ status }: { status: ThesisStatus }) {
+export function StatusStepper({ status, vertical = false }: { status: ThesisStatus; vertical?: boolean }) {
   if (status === "REJECTED") {
     return <p className="notice notice-error">This thesis topic was rejected.</p>;
   }
   const current = STATUS_FLOW.indexOf(status);
   return (
-    <ol className="stepper">
+    <ol className={vertical ? "stepper stepper-vertical" : "stepper"}>
       {STATUS_FLOW.map((step, i) => (
         <li
           key={step}

@@ -1,6 +1,6 @@
 """Business rules shared by students and professors.
 
-The database already guarantees unique e-mails and national ids; checking first lets the
+The database already guarantees unique e-mails, user names and national ids; checking first lets the
 API answer 409 with a clear message instead of a generic integrity error.
 """
 
@@ -19,6 +19,7 @@ from app.models import (
     UserRole,
 )
 from app.schemas.people import PersonCreate, PersonUpdate
+from app.schemas.users import username_from_email
 
 Person = Student | Professor
 
@@ -51,12 +52,13 @@ def _check_unique(
         if db.scalars(same_email).first():
             raise _conflict(f"Another {model.__name__.lower()} already uses this e-mail")
 
-        # The linked login account shares the e-mail, so it must be free among users too.
-        users = select(User).where(func.lower(User.email) == email.lower())
+        # The linked login account takes its user name from the e-mail (name.lastname),
+        # so that user name must be free among the other accounts too.
+        users = select(User).where(func.lower(User.username) == username_from_email(email))
         if person is not None and person.account is not None:
             users = users.where(User.user_id != person.account.user_id)
         if db.scalars(users).first():
-            raise _conflict("A user account already uses this e-mail")
+            raise _conflict("A user account already uses this user name")
 
     if national_id is not None:
         same_id = select(model).where(model.national_id == national_id)
@@ -79,7 +81,12 @@ def create_person(db: Session, model: type[Person], data: PersonCreate) -> Perso
         role = UserRole.STUDENT if model is Student else UserRole.PROFESSOR
         link = {"student": person} if model is Student else {"professor": person}
         db.add(
-            User(email=email, password_hash=hash_password(data.account_password), role=role, **link)
+            User(
+                username=username_from_email(email),
+                password_hash=hash_password(data.account_password),
+                role=role,
+                **link,
+            )
         )
 
     db.commit()
@@ -101,9 +108,9 @@ def update_person(db: Session, person: Person, data: PersonUpdate) -> Person:
 
     for field, value in changes.items():
         setattr(person, field, value)
-    # Keep the login e-mail in sync with the person's e-mail (documentation.md §8.2.1).
+    # Keep the login user name in sync with the person's e-mail (documentation.md §8.2.1).
     if "email" in changes and person.account is not None:
-        person.account.email = changes["email"]
+        person.account.username = username_from_email(changes["email"])
 
     db.commit()
     db.refresh(person)

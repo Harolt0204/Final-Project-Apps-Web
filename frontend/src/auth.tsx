@@ -4,7 +4,7 @@ import { api, setUnauthorizedHandler, tokenStore, type User } from "./api";
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [logout]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { access_token, user } = await api.login(email, password);
+  const login = useCallback(async (username: string, password: string) => {
+    const { access_token, user } = await api.login(username, password);
     tokenStore.set(access_token);
     setUser(user);
   }, []);

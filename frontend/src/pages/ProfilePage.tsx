@@ -43,8 +43,8 @@ export default function ProfilePage() {
         <dl className="facts">
           <dt>Name</dt>
           <dd>{user.display_name}</dd>
-          <dt>E-mail</dt>
-          <dd>{user.email}</dd>
+          <dt>User name</dt>
+          <dd>{user.username}</dd>
           <dt>Role</dt>
           <dd>{ROLE_LABEL[user.role]}</dd>
         </dl>

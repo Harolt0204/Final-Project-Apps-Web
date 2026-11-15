@@ -1,6 +1,8 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import type { UserRole } from "../api";
 import { useAuth } from "../auth";
+import { ProfessorStats } from "./Stats";
+import { isThesisDashboard, sectionFrom, THESIS_SECTIONS } from "./thesisSections";
 
 interface Tab {
   to: string;
@@ -11,7 +13,7 @@ interface Tab {
 
 // Top tabs and sub-navigation, in the style of the MiYT academic portal.
 const TABS: Tab[] = [
-  { to: "/", label: "Home", roles: ["admin", "professor", "student"] },
+  { to: "/", label: "Home", roles: ["admin", "student"] },
   {
     to: "/theses",
     label: "Theses",
@@ -22,7 +24,6 @@ const TABS: Tab[] = [
     ],
   },
   { to: "/theses", label: "My Theses", roles: ["professor"] },
-  { to: "/theses", label: "My Thesis", roles: ["student"] },
   {
     to: "/defenses",
     label: "Defenses",
@@ -32,7 +33,7 @@ const TABS: Tab[] = [
       { to: "/rooms", label: "Rooms" },
     ],
   },
-  { to: "/defenses", label: "Defenses", roles: ["professor", "student"] },
+  { to: "/defenses", label: "Defenses", roles: ["professor"] },
   {
     to: "/students",
     label: "Students",
@@ -95,19 +96,29 @@ export default function Layout() {
         t.sub?.some((s) => location.pathname === s.to.split("?")[0]),
   );
 
+  // Thesis dashboards (student home, professor thesis view): the sub-navigation picks
+  // the section shown in the center panel, and the page uses the full window width.
+  const dashboard = isThesisDashboard(user.role, location.pathname);
+  const currentSection = sectionFrom(new URLSearchParams(location.search).get("section"));
+
   return (
     <div className="app">
       <header className="masthead">
         <div className="masthead-top">
           <span className="welcome">
-            <strong>Welcome</strong> ({user.email.split("@")[0]}) · {ROLE_LABEL[user.role]}
+            <strong>Welcome</strong> ({user.username}) · {ROLE_LABEL[user.role]}
           </span>
           <nav className="utility-links" aria-label="Account">
             <span>Sistema de Gestión de Tesis</span>
-            <Link to="/profile">My Profile</Link>
-            <a href="/docs" target="_blank" rel="noreferrer">
-              API Docs
-            </a>
+            {/* Only coordination manages its account here and uses the API reference. */}
+            {user.role === "admin" && (
+              <>
+                <Link to="/profile">My Profile</Link>
+                <a href="/docs" target="_blank" rel="noreferrer">
+                  API Docs
+                </a>
+              </>
+            )}
             <button type="button" className="link-button" onClick={logout}>
               Log Out
             </button>
@@ -117,6 +128,7 @@ export default function Layout() {
           <span className="brand-title">Thesis Management</span>
           <span className="brand-sub">Yachay Tech University</span>
         </div>
+        {user.role === "professor" && <ProfessorStats />}
         <nav className="tabs" aria-label="Main">
           {tabs.map((t) => (
             <NavLink
@@ -130,7 +142,18 @@ export default function Layout() {
           ))}
         </nav>
       </header>
-      <nav className="subnav" aria-label="Section">
+      <nav className={dashboard ? "subnav subnav-sections" : "subnav"} aria-label="Section">
+        {dashboard &&
+          THESIS_SECTIONS.map((s) => (
+            <Link
+              key={s.key}
+              to={`${location.pathname}?section=${s.key}`}
+              className={s.key === currentSection ? "active" : undefined}
+              aria-current={s.key === currentSection ? "page" : undefined}
+            >
+              {s.label}
+            </Link>
+          ))}
         {active?.sub?.map((s) => (
           // Compared with the query string too, so "/students?new=1" and "/students"
           // are not both highlighted.
@@ -143,7 +166,7 @@ export default function Layout() {
           </Link>
         ))}
       </nav>
-      <div className="page">
+      <div className={dashboard ? "page page-wide" : "page"}>
         <aside className="sidebar" aria-hidden="true" />
         <main className="content">
           <Outlet />

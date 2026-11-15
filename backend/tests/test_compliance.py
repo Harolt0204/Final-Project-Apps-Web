@@ -14,7 +14,7 @@ from app.models import (
 )
 from tests.conftest import login
 
-ADMIN = "admin@yachaytech.edu.ec"
+ADMIN = "admin"
 
 
 def email(key: str) -> str:
@@ -85,7 +85,7 @@ def test_similarity_verdict_follows_threshold(client, admin, world, db, threshol
     assert r.json()["verdict"] == "ACCEPTED"
 
     # Both checks stay in the history, visible to the student.
-    student = login(client, email("s1"))
+    student = login(client, "s1")
     body = client.get(checks_url(t1.thesis_id), headers=student).json()
     assert body["threshold"] == "15.00"
     assert [c["verdict"] for c in body["checks"]] == ["REJECTED", "ACCEPTED"]
@@ -99,13 +99,13 @@ def test_similarity_rules(client, admin, world, db, threshold):
 
     t1.status = ThesisStatus.IN_REVIEW
     db.commit()
-    tutor = login(client, email("pA"))
+    tutor = login(client, "pA")
     assert client.post(checks_url(t1.thesis_id), headers=tutor, json=payload).status_code == 403
     bad = {"similarity_percentage": "120", "tool": "Turnitin"}
     assert client.post(checks_url(t1.thesis_id), headers=admin, json=bad).status_code == 422
     future = {**payload, "checked_at": (dt.datetime.now() + dt.timedelta(days=2)).isoformat()}
     assert client.post(checks_url(t1.thesis_id), headers=admin, json=future).status_code == 422
-    outsider = login(client, email("pC"))
+    outsider = login(client, "pC")
     assert client.get(checks_url(t1.thesis_id), headers=outsider).status_code == 404
 
 
@@ -133,7 +133,7 @@ def test_settings_validation(client, admin, world, threshold):
     assert (
         client.put("/api/settings/unknown", headers=admin, json={"value": "1"}).status_code == 404
     )
-    student = login(client, email("s1"))
+    student = login(client, "s1")
     assert client.put(url, headers=student, json={"value": "50"}).status_code == 403
 
 
@@ -182,12 +182,12 @@ def test_checklist_and_certification(client, admin, world, types):
 def test_who_sees_requirements(client, admin, world, types):
     s1 = world["students"]["s1"].student_id
     t1 = world["t1"].thesis_id
-    assert client.get(req_url(s1), headers=login(client, email("s1"))).status_code == 200
-    assert client.get(req_url(s1), headers=login(client, email("s2"))).status_code == 404
+    assert client.get(req_url(s1), headers=login(client, "s1")).status_code == 200
+    assert client.get(req_url(s1), headers=login(client, "s2")).status_code == 404
     # The tutor sees them through the thesis; an outsider does not.
-    tutor = login(client, email("pA"))
+    tutor = login(client, "pA")
     assert client.get(f"/api/theses/{t1}/requirements", headers=tutor).status_code == 200
-    outsider = login(client, email("pC"))
+    outsider = login(client, "pC")
     assert client.get(f"/api/theses/{t1}/requirements", headers=outsider).status_code == 404
     # Only admins certify.
     internship = types["INTERNSHIP"].requirement_type_id
@@ -212,7 +212,7 @@ def test_requirement_type_catalog(client, admin, world, types):
 
     lab = types["LAB"].requirement_type_id
     client.patch(f"/api/requirement-types/{lab}", headers=admin, json={"is_active": True})
-    student = login(client, email("s1"))
+    student = login(client, "s1")
     codes = [t["code"] for t in client.get("/api/requirement-types", headers=student).json()]
     assert codes == ["INTERNSHIP", "LANGUAGE", "LAB", "THESIS_FEE"]
 

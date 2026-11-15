@@ -260,7 +260,7 @@ function PersonForm({
           <fieldset className="full fieldset">
             <label className="checkbox">
               <input type="checkbox" checked={createAccount} onChange={(e) => setCreateAccount(e.target.checked)} />
-              Create a login account with this e-mail
+              Create a login account (user name: {form.email.split("@")[0].toLowerCase() || "name.lastname"})
             </label>
             {createAccount && (
               <label>

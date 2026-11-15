@@ -23,7 +23,8 @@ class PersonCreate(BaseModel):
     email: EmailStr
     school_id: int | None = None
     institution: Institution | None = "Yachay Tech"
-    # When set, a login account is created at the same time, using the same e-mail.
+    # When set, a login account is created at the same time; its user name is the
+    # local part of the e-mail (name.lastname).
     account_password: str | None = Field(
         default=None, min_length=PASSWORD_MIN, max_length=PASSWORD_MAX
     )

@@ -5,7 +5,7 @@ import pytest
 from app.models import School
 from tests.conftest import login
 
-ADMIN = "admin@yachaytech.edu.ec"
+ADMIN = "admin"
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def new_student(**overrides):
 
 
 def test_people_endpoints_are_admin_only(client, world):
-    headers = login(client, "pA@yachaytech.edu.ec")
+    headers = login(client, "pA")
     assert client.get("/api/students", headers=headers).status_code == 403
     assert client.get("/api/professors", headers=headers).status_code == 403
     assert client.post("/api/students", headers=headers, json=new_student()).status_code == 403
@@ -47,7 +47,7 @@ def test_create_student_with_school_and_account(client, admin, school):
     assert body["has_account"] is True
     assert body["has_thesis"] is False
     # The new account can log in right away.
-    login(client, "ana.vera@yachaytech.edu.ec", "first-password-1")
+    login(client, "ana.vera", "first-password-1")
 
 
 def test_duplicate_email_or_national_id_is_409(client, admin):
@@ -59,9 +59,9 @@ def test_duplicate_email_or_national_id_is_409(client, admin):
         assert r.status_code == 409
 
 
-def test_account_email_must_be_free_among_users(client, admin):
-    # admin@ is already a login e-mail, so a student cannot take it with an account.
-    payload = new_student(email=ADMIN, account_password="first-password-1")
+def test_account_username_must_be_free_among_users(client, admin):
+    # "admin" is already a user name, so admin@... cannot get an account as a student.
+    payload = new_student(email="admin@yachaytech.edu.ec", account_password="first-password-1")
     assert client.post("/api/students", headers=admin, json=payload).status_code == 409
 
 
@@ -78,7 +78,7 @@ def test_changing_email_also_changes_login(client, admin, world):
         json={"email": "s1.new@yachaytech.edu.ec"},
     )
     assert r.status_code == 200
-    login(client, "s1.new@yachaytech.edu.ec")
+    login(client, "s1.new")
 
 
 def test_search_students(client, admin):
@@ -120,13 +120,13 @@ def test_periods(client, admin, world):
     assert client.post("/api/periods", headers=admin, json=good).status_code == 409
 
     # Everyone logged in can read periods; only admins create them.
-    student = login(client, "s1@yachaytech.edu.ec")
+    student = login(client, "s1")
     assert [p["name"] for p in client.get("/api/periods", headers=student).json()] == ["2027-I"]
     assert client.post("/api/periods", headers=student, json=good).status_code == 403
 
 
 def test_schools(client, admin, school):
-    student = login(client, "s1@yachaytech.edu.ec")
+    student = login(client, "s1")
     assert len(client.get("/api/schools", headers=student).json()) == 1
     r = client.post("/api/schools", headers=admin, json={"code": "earth", "name": "Earth"})
     assert r.status_code == 201

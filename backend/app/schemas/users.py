@@ -1,20 +1,37 @@
 """Request/response models for authentication and user accounts."""
 
 import datetime as dt
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.models import UserRole
 
 # 12 characters minimum (OWASP ASVS); 72 is bcrypt's limit.
 PASSWORD_MIN, PASSWORD_MAX = 12, 72
 
+# Login name: name.lastname, lowercase, without the @domain.
+Username = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        to_lower=True,
+        max_length=100,
+        pattern=r"^[a-z0-9]+([._-][a-z0-9]+)*$",
+    ),
+]
+
+
+def username_from_email(email: str) -> str:
+    """name.lastname@yachaytech.edu.ec -> name.lastname"""
+    return email.split("@", 1)[0].strip().lower()
+
 
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     user_id: int
-    email: str
+    username: str
     role: UserRole
     display_name: str
     student_id: int | None
@@ -30,7 +47,7 @@ class TokenOut(BaseModel):
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    username: Username
     password: str = Field(min_length=PASSWORD_MIN, max_length=PASSWORD_MAX)
     role: UserRole
     student_id: int | None = None

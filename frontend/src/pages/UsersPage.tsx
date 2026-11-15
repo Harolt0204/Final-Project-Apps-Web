@@ -45,7 +45,7 @@ export default function UsersPage() {
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>E-mail</th>
+                  <th>User name</th>
                   <th>Role</th>
                   <th>Last login</th>
                   <th>Status</th>
@@ -56,7 +56,7 @@ export default function UsersPage() {
                 {users.map((u) => (
                   <tr key={u.user_id} className={u.is_active ? "" : "inactive"}>
                     <td>{u.display_name}</td>
-                    <td>{u.email}</td>
+                    <td>{u.username}</td>
                     <td className="capitalize">{u.role}</td>
                     <td>{u.last_login_at ? new Date(u.last_login_at).toLocaleString("en-GB") : "Never"}</td>
                     <td>{u.is_active ? "Active" : "Disabled"}</td>
@@ -79,14 +79,15 @@ export default function UsersPage() {
 }
 
 function NewUserForm({ onCancel, onCreated }: { onCancel: () => void; onCreated: () => void }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("professor");
   const [linkedId, setLinkedId] = useState("");
   const [candidates, setCandidates] = useState<PersonRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Only people without an account can receive one; the e-mail defaults to theirs.
+  // Only people without an account can receive one; the user name defaults to the
+  // local part of their e-mail (name.lastname@... -> name.lastname).
   useEffect(() => {
     setLinkedId("");
     setCandidates([]);
@@ -100,7 +101,7 @@ function NewUserForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
   function choosePerson(value: string) {
     setLinkedId(value);
     const person = candidates.find((p) => personId(p) === Number(value));
-    if (person) setEmail(person.email);
+    if (person) setUsername(person.email.split("@")[0].toLowerCase());
   }
 
   async function submit(event: FormEvent) {
@@ -109,7 +110,7 @@ function NewUserForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
     const id = linkedId ? Number(linkedId) : undefined;
     try {
       await api.createUser({
-        email,
+        username,
         password,
         role,
         student_id: role === "student" ? id : undefined,
@@ -126,8 +127,19 @@ function NewUserForm({ onCancel, onCreated }: { onCancel: () => void; onCreated:
       <h2>New account</h2>
       <form className="form-grid" onSubmit={submit}>
         <label>
-          E-mail
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          User name
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="name.lastname"
+            pattern="[a-z0-9]+([._\-][a-z0-9]+)*"
+            title="Lowercase name.lastname, without @domain"
+            maxLength={100}
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+          />
         </label>
         <label>
           Initial password (min. 12 characters)

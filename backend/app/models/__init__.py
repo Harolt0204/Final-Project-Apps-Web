@@ -502,7 +502,8 @@ class User(TimestampMixin, Base):
     )
 
     user_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String(100), unique=True)
+    # name.lastname, without the @domain (migration 0010).
+    username: Mapped[str] = mapped_column(String(100), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     # Tokens issued before this moment are rejected (migration 0009).
     password_changed_at: Mapped[dt.datetime | None] = mapped_column(DateTime)

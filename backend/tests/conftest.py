@@ -26,6 +26,7 @@ from app.models import (
     User,
     UserRole,
 )
+from app.schemas.users import username_from_email
 
 PASSWORD = "correct-horse-battery"
 
@@ -89,11 +90,21 @@ def world(db: Session) -> dict:
     }
     db.add_all([*profs.values(), *studs.values()])
 
-    users = {"admin": User(email="admin@yachaytech.edu.ec", password_hash=pw, role=UserRole.ADMIN)}
+    users = {"admin": User(username="admin", password_hash=pw, role=UserRole.ADMIN)}
     for k, p in profs.items():
-        users[k] = User(email=p.email, password_hash=pw, role=UserRole.PROFESSOR, professor=p)
+        users[k] = User(
+            username=username_from_email(p.email),
+            password_hash=pw,
+            role=UserRole.PROFESSOR,
+            professor=p,
+        )
     for k, s in studs.items():
-        users[k] = User(email=s.email, password_hash=pw, role=UserRole.STUDENT, student=s)
+        users[k] = User(
+            username=username_from_email(s.email),
+            password_hash=pw,
+            role=UserRole.STUDENT,
+            student=s,
+        )
     db.add_all(users.values())
 
     t1 = Thesis(title="Thesis one", student=studs["s1"])
@@ -111,7 +122,7 @@ def world(db: Session) -> dict:
     return {"users": users, "profs": profs, "students": studs, "t1": t1, "t2": t2}
 
 
-def login(client: TestClient, email: str, password: str = PASSWORD) -> dict[str, str]:
-    response = client.post("/api/auth/login", data={"username": email, "password": password})
+def login(client: TestClient, username: str, password: str = PASSWORD) -> dict[str, str]:
+    response = client.post("/api/auth/login", data={"username": username, "password": password})
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}

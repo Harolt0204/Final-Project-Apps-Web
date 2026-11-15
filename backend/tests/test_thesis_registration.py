@@ -7,7 +7,7 @@ import pytest
 from app.models import AcademicPeriod, ThesisStatus
 from tests.conftest import login
 
-ADMIN = "admin@yachaytech.edu.ec"
+ADMIN = "admin"
 TOPIC = {"title": "Quantum walks on graphs", "abstract": "An abstract."}
 
 
@@ -33,7 +33,7 @@ def current_period(db):
 
 
 def test_student_registers_own_thesis(client, world, current_period):
-    headers = login(client, "s3@yachaytech.edu.ec")
+    headers = login(client, "s3")
     r = client.post("/api/theses", headers=headers, json=TOPIC)
     assert r.status_code == 201, r.text
     body = r.json()
@@ -48,14 +48,14 @@ def test_student_registers_own_thesis(client, world, current_period):
 
 
 def test_student_cannot_register_for_someone_else(client, world):
-    headers = login(client, "s3@yachaytech.edu.ec")
+    headers = login(client, "s3")
     other = world["students"]["s1"].student_id
     r = client.post("/api/theses", headers=headers, json={**TOPIC, "student_id": other})
     assert r.status_code == 403
 
 
 def test_professor_cannot_register(client, world):
-    headers = login(client, "pC@yachaytech.edu.ec")
+    headers = login(client, "pC")
     assert client.post("/api/theses", headers=headers, json=TOPIC).status_code == 403
 
 
@@ -68,12 +68,12 @@ def test_admin_registers_for_a_student(client, admin, world):
 
 
 def test_short_title_is_rejected(client, world):
-    headers = login(client, "s3@yachaytech.edu.ec")
+    headers = login(client, "s3")
     assert client.post("/api/theses", headers=headers, json={"title": "abc"}).status_code == 422
 
 
 def test_student_edits_topic_only_while_proposed(client, db, world):
-    headers = login(client, "s1@yachaytech.edu.ec")
+    headers = login(client, "s1")
     t1 = world["t1"]
     r = client.patch(f"/api/theses/{t1.thesis_id}", headers=headers, json={"title": "New title"})
     assert r.status_code == 200
@@ -101,7 +101,7 @@ def put_tutor(client, headers, thesis_id, slot, professor):
 
 
 def test_only_admins_assign_tutors(client, world):
-    headers = login(client, "pA@yachaytech.edu.ec")
+    headers = login(client, "pA")
     r = put_tutor(client, headers, world["t1"].thesis_id, "co-tutor", world["profs"]["pC"])
     assert r.status_code == 403
 
@@ -114,7 +114,7 @@ def test_assign_and_replace_tutors(client, admin, world):
     assert tutors == {"Tutor": "pA Prof", "Co-Tutor": "pC Prof"}
 
     # Professor C now sees the thesis, as co-tutor.
-    prof_c = login(client, "pC@yachaytech.edu.ec")
+    prof_c = login(client, "pC")
     listed = client.get("/api/theses", headers=prof_c).json()
     assert [(t["thesis_id"], t["my_roles"]) for t in listed] == [(t1, ["Co-Tutor"])]
 
