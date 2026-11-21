@@ -37,7 +37,7 @@ backend/
   scripts/verify_db_rules.py   comprueba las reglas de la BD en MySQL
   scripts/create_admin.py      primer administrador en producción
   tests/
-frontend/src/       SPA (login, layout tipo MiYT, páginas)
+frontend/src/       SPA (login, layout tipo MiYT, páginas; diseño responsivo)
 docker-compose.yml       MySQL 8 para desarrollo
 docker-compose.prod.yml  MySQL + app (imagen de producción)
 Dockerfile               imagen única: frontend compilado + API
@@ -133,6 +133,53 @@ HTTPS (la app envía HSTS en producción). Para una plataforma de contenedores b
 la imagen del `Dockerfile` y estas variables: `ENVIRONMENT=production`, `DATABASE_URL`
 (MySQL 8), `JWT_SECRET`, y `PORT` si la plataforma lo asigna. El usuario de MySQL debe
 poder crear triggers (`log_bin_trust_function_creators=1` o privilegio equivalente).
+
+## Diseño responsivo
+
+La aplicación se adapta a celulares y tablets. La vista de escritorio no cambia: los estilos
+para pantallas pequeñas están en una sección aparte al final de `frontend/src/styles.css`
+(comentario `phones`).
+
+| Ancho de pantalla | Qué cambia |
+| :--- | :--- |
+| ≤ 1000 px (tablets) | Menos espacio entre pestañas para que quepan las 9 del administrador |
+| ≤ 760 px (celulares) | Botón **Menu** con las pestañas (cuando hay más de 3), submenús en una línea que se desliza de lado, barra de progreso compacta, campos de texto a 16 px (evita el zoom de iPhone) |
+| ≤ 640 px | Las tablas se muestran como tarjetas con etiquetas ("Student: Daniela Torres") |
+
+Archivos involucrados:
+
+- `frontend/src/styles.css`: todos los estilos para pantallas pequeñas.
+- `frontend/src/components/Layout.tsx`: botón **Menu** y desplazamiento del submenú hasta la opción activa.
+- `frontend/src/components/useTableLabels.ts`: copia el encabezado de cada columna a sus
+  celdas (`data-label`), que el CSS usa para las tarjetas.
+
+### Reglas para páginas nuevas
+
+- **Tablas:** usar `<div className="table-wrap"><table className="grid">` con encabezados
+  en `<thead><th>`. En celular se convierten solas en tarjetas, sin código extra.
+  - Una columna sin título (por ejemplo, la de botones) ocupa todo el ancho de la tarjeta.
+  - Las tablas que deben conservar sus columnas (reportes, datos numéricos) llevan la clase
+    `compact` y en celular se deslizan de lado.
+- **Estilos para celular:** agregarlos dentro de los bloques `@media (max-width: 760px)`
+  o `@media (max-width: 640px)` del final de `styles.css`, no en medio del archivo.
+- **Anchos:** no usar anchos fijos en píxeles para contenedores; preferir `%`, `minmax()`
+  o `flex`.
+- **Botones:** mantener una altura mínima de unos 40 px para que se puedan tocar con el dedo.
+
+### Cómo probarlo
+
+- **En la computadora:** abrir las herramientas de desarrollador del navegador (F12) y
+  activar la vista de dispositivo (Ctrl+Shift+M). Revisar al menos 360 px, 390 px y 768 px
+  de ancho.
+- **En un celular real** (conectado al mismo WiFi):
+
+  ```powershell
+  cd frontend
+  npm run dev -- --host
+  ```
+
+  Abrir en el celular la dirección **Network** que muestra la terminal (por ejemplo
+  `http://192.168.1.20:5173`) y permitir el acceso si el Firewall de Windows lo pide.
 
 ## Seguridad
 
