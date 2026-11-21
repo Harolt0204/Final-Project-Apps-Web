@@ -1,8 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import type { UserRole } from "../api";
 import { useAuth } from "../auth";
 import { ProfessorStats } from "./Stats";
 import { isThesisDashboard, sectionFrom, THESIS_SECTIONS } from "./thesisSections";
+import { useTableLabels } from "./useTableLabels";
 
 interface Tab {
   to: string;
@@ -85,9 +87,22 @@ const ROLE_LABEL: Record<UserRole, string> = {
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  // Phones: with many tabs (coordination has nine) they fold into a "Menu" button.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const subnavRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLElement>(null);
+  useTableLabels(contentRef);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    // On a narrow screen the sub-menu scrolls sideways: keep the current item in view.
+    subnavRef.current?.querySelector(".active")?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [location.pathname, location.search]);
+
   if (!user) return null;
 
   const tabs = TABS.filter((t) => t.roles.includes(user.role));
+  const collapsible = tabs.length > 3;
   // A tab is active on its own page and on the pages of its sub-menu (e.g. Rooms).
   const active = tabs.find((t) =>
     t.to === "/"
@@ -103,7 +118,7 @@ export default function Layout() {
 
   return (
     <div className="app">
-      <header className="masthead">
+      <header className={collapsible ? "masthead has-menu" : "masthead"}>
         <div className="masthead-top">
           <span className="welcome">
             <strong>Welcome</strong> ({user.username}) · {ROLE_LABEL[user.role]}
@@ -114,7 +129,7 @@ export default function Layout() {
             {user.role === "admin" && (
               <>
                 <Link to="/profile">My Profile</Link>
-                <a href="/docs" target="_blank" rel="noreferrer">
+                <a href="/docs" target="_blank" rel="noreferrer" className="hide-on-phone">
                   API Docs
                 </a>
               </>
@@ -129,7 +144,19 @@ export default function Layout() {
           <span className="brand-sub">Yachay Tech University</span>
         </div>
         {user.role === "professor" && <ProfessorStats />}
-        <nav className="tabs" aria-label="Main">
+        {collapsible && (
+          <button
+            type="button"
+            className="menu-toggle"
+            aria-expanded={menuOpen}
+            aria-controls="main-tabs"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <span aria-hidden="true">{menuOpen ? "✕" : "☰"}</span> Menu
+            {active && <span className="menu-current">· {active.label}</span>}
+          </button>
+        )}
+        <nav id="main-tabs" className={menuOpen ? "tabs open" : "tabs"} aria-label="Main">
           {tabs.map((t) => (
             <NavLink
               key={t.label}
@@ -142,7 +169,7 @@ export default function Layout() {
           ))}
         </nav>
       </header>
-      <nav className={dashboard ? "subnav subnav-sections" : "subnav"} aria-label="Section">
+      <nav ref={subnavRef} className={dashboard ? "subnav subnav-sections" : "subnav"} aria-label="Section">
         {dashboard &&
           THESIS_SECTIONS.map((s) => (
             <Link
@@ -168,7 +195,7 @@ export default function Layout() {
       </nav>
       <div className={dashboard ? "page page-wide" : "page"}>
         <aside className="sidebar" aria-hidden="true" />
-        <main className="content">
+        <main className="content" ref={contentRef}>
           <Outlet />
         </main>
       </div>
