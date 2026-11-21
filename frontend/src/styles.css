@@ -1296,3 +1296,324 @@ code {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* ===================================================================== phones
+   Everything below only applies to narrow screens; the desktop layout is unchanged.
+   760px covers phones in portrait and landscape and small tablets in portrait. */
+
+/* The menu button only exists on phones. */
+.menu-toggle {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  /* Text fields at 16px: iOS zooms the page on focus when they are smaller. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* ---- masthead: one compact line for the greeting and the account links */
+  .masthead-top {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .welcome {
+    min-width: 0;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .utility-links {
+    flex-shrink: 0;
+    padding: 0.35rem 0.6rem 0.4rem 0.9rem;
+    border-radius: 0 0 0 14px;
+    font-size: 0.78rem;
+  }
+  .utility-links > * {
+    padding: 0 0.55rem;
+  }
+  .hide-on-phone {
+    display: none;
+  }
+  .brand {
+    padding: 0.15rem 0.75rem 0.7rem;
+  }
+  .brand-title {
+    font-size: 1.35rem;
+  }
+  .brand-sub {
+    font-size: 0.85rem;
+  }
+
+  /* ---- main tabs: a few tabs stay as tabs; many fold into a "Menu" button */
+  .tabs {
+    padding: 0 0.5rem;
+    scrollbar-width: none;
+  }
+  .tab {
+    padding: 0.45rem 0.9rem;
+  }
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0.5rem 0.5rem;
+    padding: 0.5rem 0.9rem;
+    min-height: 44px;
+    border: 1px solid #a9b9c8;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #ffffff, #e1e8ef);
+    color: #3c556e;
+    font: inherit;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .menu-current {
+    font-weight: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .has-menu .tabs {
+    display: none;
+  }
+  .has-menu .tabs.open {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0 0.5rem 0.5rem;
+    padding: 0;
+    border: 1px solid #a9b9c8;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 6px 16px rgb(20 45 70 / 0.18);
+  }
+  .has-menu .tabs.open .tab {
+    border: 0;
+    border-top: 1px solid #e3e9ef;
+    border-radius: 0;
+    padding: 0.8rem 1rem;
+    background: #fff;
+  }
+  .has-menu .tabs.open .tab:first-child {
+    border-top: 0;
+  }
+  .has-menu .tabs.open .tab.active {
+    background: linear-gradient(180deg, #6f8fae, #4c6c8c);
+  }
+
+  /* ---- professors' counters: one row of four small cards */
+  .stats.masthead-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.4rem 0.5rem;
+  }
+  .masthead-stats .stat {
+    min-width: 0;
+    padding: 0.25rem 0.4rem;
+  }
+  .masthead-stats .stat-label {
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+
+  /* ---- sub-menu: one line that scrolls sideways instead of wrapping */
+  .subnav,
+  .subnav-sections {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 1.4rem;
+    padding: 0 1rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+  .subnav::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .subnav a {
+    flex-shrink: 0;
+    padding: 0.6rem 0;
+  }
+  /* Nothing to show (pages without a sub-menu): keep only a thin separator. */
+  .subnav:empty {
+    min-height: 0.5rem;
+  }
+
+  /* ---- page and panels */
+  .page {
+    min-height: 0;
+  }
+  .content,
+  .page-wide .content {
+    padding: 0.75rem;
+  }
+  .panel {
+    padding: 1rem;
+    margin-bottom: 0.9rem;
+  }
+  .thesis-dashboard {
+    gap: 0;
+  }
+  .quick-links {
+    padding-left: 0.5rem;
+  }
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+  .facts,
+  .thesis-dashboard-facts .facts {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 0.45rem 0.75rem;
+  }
+  .filters > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .actions,
+  .row-actions,
+  .inline-form {
+    flex-wrap: wrap;
+  }
+  .button {
+    min-height: 40px;
+  }
+  .button-small {
+    min-height: 32px;
+  }
+
+  /* ---- status stepper: a row of dots; only the current step keeps its name */
+  .stepper,
+  .stepper-vertical {
+    --dot: 26px;
+    flex-direction: row;
+    overflow: visible;
+    padding-bottom: 1.5rem;
+  }
+  .stepper li,
+  .stepper-vertical li {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    flex-direction: column;
+    gap: 0;
+  }
+  .stepper li::before,
+  .stepper-vertical li::before {
+    top: calc(var(--dot) / 2 - 1.5px);
+    left: -50%;
+    width: 100%;
+    height: 3px;
+  }
+  .stepper .dot {
+    width: var(--dot);
+    height: var(--dot);
+    margin-bottom: 0;
+    font-size: 0.75rem;
+  }
+  .stepper .step-label {
+    display: none;
+  }
+  .stepper li.current .step-label {
+    display: block;
+    position: absolute;
+    top: calc(var(--dot) + 0.4rem);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 0.82rem;
+  }
+  /* Near the edges the name is anchored to that edge so it is never cut off. */
+  .stepper li.current:nth-child(-n + 2) .step-label {
+    left: 0;
+    transform: none;
+  }
+  .stepper li.current:nth-last-child(-n + 2) .step-label {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+}
+
+/* ---- tables: on phones each row becomes a card with labelled values.
+   The labels come from the column headers (see useTableLabels). Report tables with
+   bars and the small "compact" tables keep their columns and scroll sideways. */
+@media (max-width: 640px) {
+  .table-wrap > .grid:not(.compact):not(.workload) thead {
+    display: none;
+  }
+  .table-wrap > .grid:not(.compact):not(.workload),
+  .table-wrap > .grid:not(.compact):not(.workload) tbody,
+  .table-wrap > .grid:not(.compact):not(.workload) tr,
+  .table-wrap > .grid:not(.compact):not(.workload) td {
+    display: block;
+    width: 100%;
+  }
+  .table-wrap > .grid:not(.compact):not(.workload) tr {
+    padding: 0.55rem 0.8rem;
+    margin-bottom: 0.6rem;
+    border: 1px solid var(--yt-line);
+    border-radius: 6px;
+    background: #fff;
+  }
+  .table-wrap > .grid:not(.compact):not(.workload) td {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    justify-items: start;
+    padding: 0.3rem 0;
+    border: 0;
+    overflow-wrap: anywhere;
+  }
+  /* Label on the left; everything in the cell (text, badges, notes) on the right. */
+  .table-wrap > .grid:not(.compact):not(.workload) td > * {
+    grid-column: 2;
+  }
+  .table-wrap > .grid:not(.compact):not(.workload) td::before {
+    grid-column: 1;
+    grid-row: 1 / span 10;
+    content: attr(data-label);
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--yt-muted);
+  }
+  /* Cells without a header (row buttons) use the full width, without a label. */
+  .table-wrap > .grid:not(.compact):not(.workload) td:not([data-label]),
+  .table-wrap > .grid:not(.compact):not(.workload) td[data-label=""] {
+    display: block;
+    padding-top: 0.5rem;
+  }
+  .table-wrap > .grid:not(.compact):not(.workload) td:not([data-label])::before,
+  .table-wrap > .grid:not(.compact):not(.workload) td[data-label=""]::before {
+    content: none;
+  }
+  /* The first cell (usually the name or title) reads as the card's heading. */
+  .table-wrap > .grid:not(.compact):not(.workload) td:first-child {
+    font-weight: bold;
+    color: var(--yt-ink);
+  }
+  .table-wrap > .grid:not(.compact):not(.workload) .num {
+    text-align: left;
+  }
+
+  /* Tables that keep their columns: readable widths, swipe sideways. */
+  .table-wrap > .grid.compact,
+  .table-wrap > .grid.workload {
+    min-width: 520px;
+  }
+}
+
+/* Tablets: coordination's nine tabs fit in one row with a little less padding. */
+@media (min-width: 761px) and (max-width: 1000px) {
+  .tab {
+    padding: 0.5rem 0.75rem;
+  }
+}
