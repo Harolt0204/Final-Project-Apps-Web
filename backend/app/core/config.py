@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import EmailStr, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # `.env` lives in the project root, one level above `backend/`.
@@ -18,6 +18,7 @@ class Settings(BaseSettings):
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        hide_input_in_errors=True,
     )
 
     environment: Literal["development", "production"] = "development"
@@ -35,6 +36,24 @@ class Settings(BaseSettings):
     # Folder with the built frontend (index.html + assets). When set, the API also serves
     # the single-page app, so production runs as one service on one origin.
     static_dir: Path | None = None
+
+    gmail_demo_enabled: bool = False
+    gmail_sender: EmailStr | Literal[""] = ""
+    gmail_app_password: SecretStr = SecretStr("")
+    gmail_test_recipient: EmailStr | Literal[""] = ""
+
+    @model_validator(mode="after")
+    def validate_gmail_demo(self) -> "Settings":
+        if self.gmail_demo_enabled and (
+            self.is_production
+            or not self.gmail_sender
+            or not self.gmail_test_recipient
+            or not self.gmail_app_password.get_secret_value().replace(" ", "")
+        ):
+            raise ValueError(
+                "Gmail demo requires development mode, a sender, a key and a recipient"
+            )
+        return self
 
     @model_validator(mode="after")
     def production_needs_real_secret(self) -> "Settings":

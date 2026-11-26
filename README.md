@@ -134,6 +134,18 @@ la imagen del `Dockerfile` y estas variables: `ENVIRONMENT=production`, `DATABAS
 (MySQL 8), `JWT_SECRET`, y `PORT` si la plataforma lo asigna. El usuario de MySQL debe
 poder crear triggers (`log_bin_trust_function_creators=1` o privilegio equivalente).
 
+## Demostración de avisos de defensa por Gmail
+
+En el `.env` local, configura `GMAIL_SENDER` con el Gmail remitente,
+`GMAIL_APP_PASSWORD` con su contraseña de aplicación y `GMAIL_TEST_RECIPIENT` con el
+correo de contacto de un estudiante de prueba. Activa `GMAIL_DEMO_ENABLED=true`,
+aplica `alembic upgrade head` y reinicia el backend. La demo requiere `ENVIRONMENT=development`.
+
+Como administrador, abre **Theses → Ready for defense → Oral defense**. Al agendar
+o reprogramar, el aviso se envía solo si el correo del estudiante coincide con el
+destinatario configurado. La cola guarda el estado en `defense_emails`. La entrega
+se confirma al ver el aviso `[Demo]` en la bandeja del destinatario.
+
 ## Diseño responsivo
 
 La aplicación se adapta a celulares y tablets. La vista de escritorio no cambia: los estilos

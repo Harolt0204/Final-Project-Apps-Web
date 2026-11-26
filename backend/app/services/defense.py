@@ -19,6 +19,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.config import get_settings
 from app.models import (
     Defense,
     DefenseModality,
@@ -29,7 +30,7 @@ from app.models import (
     User,
     UserRole,
 )
-from app.services import compliance
+from app.services import compliance, defense_email
 from app.services.access import visibility_clause
 from app.services.workflow import record_status
 
@@ -118,13 +119,28 @@ def schedule_defense(
                 f"(thesis #{other.thesis_id})",
             )
 
-    defense = thesis.defense or Defense(thesis_id=thesis_id)
+    existing = thesis.defense
+    new_room = room_id if modality == DefenseModality.IN_PERSON else None
+    new_url = meeting_url if modality == DefenseModality.VIRTUAL else None
+    changed = existing is None or (
+        existing.scheduled_at,
+        existing.duration_minutes,
+        existing.modality,
+        existing.room_id,
+        existing.meeting_url,
+    ) != (start, duration_minutes, modality, new_room, new_url)
+    defense = existing or Defense(thesis_id=thesis_id)
     defense.scheduled_at = start
     defense.duration_minutes = duration_minutes
     defense.modality = modality
-    defense.room_id = room_id if modality == DefenseModality.IN_PERSON else None
-    defense.meeting_url = meeting_url if modality == DefenseModality.VIRTUAL else None
+    defense.room_id = new_room
+    defense.meeting_url = new_url
     db.add(defense)
+    settings = get_settings()
+    if changed and settings.gmail_demo_enabled:
+        defense_email.enqueue(
+            db, settings, thesis, defense, "scheduled" if existing is None else "rescheduled"
+        )
     db.commit()
     return thesis
 
@@ -135,6 +151,8 @@ def cancel_defense(db: Session, thesis_id: int) -> Thesis:
         raise _error(status.HTTP_404_NOT_FOUND, "No defense is scheduled")
     if thesis.defense.final_grade is not None or any(r.grade is not None for r in thesis.reviewers):
         raise _error(status.HTTP_409_CONFLICT, "A graded defense cannot be cancelled")
+    if get_settings().gmail_demo_enabled:
+        defense_email.supersede(db, thesis_id)
     db.delete(thesis.defense)
     db.commit()
     return thesis

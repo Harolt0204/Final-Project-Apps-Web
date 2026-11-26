@@ -1,12 +1,17 @@
 """Sprint 5: rooms, defense scheduling with conflict detection, jury grading."""
 
 import datetime as dt
+from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import sessionmaker
 
+from app.core.config import Settings
 from app.core.security import hash_password
 from app.models import (
     Defense,
+    DefenseEmail,
     Professor,
     ReviewerAssignment,
     ReviewerRole,
@@ -18,6 +23,7 @@ from app.models import (
     UserRole,
 )
 from app.schemas.users import username_from_email
+from app.services import defense, defense_email
 from tests.conftest import PASSWORD, login
 
 ADMIN = "admin"
@@ -165,6 +171,45 @@ def test_reschedule_and_cancel(client, admin, setup):
     r = client.delete(f"/api/theses/{setup['t1']}/defense", headers=admin)
     assert r.status_code == 200
     assert r.json()["defense"] is None
+
+
+def test_schedule_demo_email_reaches_only_configured_student(
+    client, admin, setup, db, engine, monkeypatch
+):
+    settings = Settings(
+        _env_file=None,
+        environment="development",
+        gmail_demo_enabled=True,
+        gmail_sender="demo@gmail.com",
+        gmail_app_password="fake test password",
+        gmail_test_recipient="s1@yachaytech.edu.ec",
+    )
+    monkeypatch.setattr(defense, "get_settings", lambda: settings)
+    a, b = setup["rooms"]
+    assert schedule(client, admin, setup["t2"], **in_room(b, at(4, 10))).status_code == 200
+    assert schedule(client, admin, setup["t1"], **in_room(a, at(3, 10))).status_code == 200
+    assert schedule(client, admin, setup["t1"], **in_room(a, at(3, 11))).status_code == 200
+    assert schedule(client, admin, setup["t1"], **in_room(a, at(3, 11))).status_code == 200
+
+    smtp = MagicMock()
+    smtp.__enter__.return_value = smtp
+    connection = MagicMock(return_value=smtp)
+    monkeypatch.setattr(defense_email.smtplib, "SMTP", connection)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+    assert defense_email.deliver_next(settings, sessions)
+    assert not defense_email.deliver_next(settings, sessions)
+
+    connection.assert_called_once_with("smtp.gmail.com", 587, timeout=10)
+    smtp.starttls.assert_called_once()
+    smtp.login.assert_called_once_with("demo@gmail.com", "faketestpassword")
+    smtp.send_message.assert_called_once()
+    message = smtp.send_message.call_args.args[0]
+    assert message["To"] == "s1@yachaytech.edu.ec"
+    assert message["From"] == "demo@gmail.com"
+    assert message["Subject"].startswith("[Demo] Thesis defense rescheduled")
+    assert "11:00" in message.get_content()
+    rows = db.scalars(select(DefenseEmail).order_by(DefenseEmail.email_id)).all()
+    assert [notice.status for notice in rows] == ["superseded", "accepted"]
 
 
 def test_calendar_visibility(client, admin, setup):

@@ -1,7 +1,10 @@
 """FastAPI application entry point."""
 
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
+from threading import Event
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,10 +25,27 @@ from app.api.routes import (
     users,
 )
 from app.core.config import get_settings
+from app.db import SessionLocal
+from app.services.defense_email import run_worker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("thesis_management")
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if not settings.gmail_demo_enabled:
+        yield
+        return
+    stop = Event()
+    worker = asyncio.create_task(asyncio.to_thread(run_worker, stop, settings, SessionLocal))
+    try:
+        yield
+    finally:
+        stop.set()
+        await worker
+
 
 app = FastAPI(
     title="Thesis Management API",
@@ -34,6 +54,7 @@ app = FastAPI(
         "at Yachay Tech University."
     ),
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

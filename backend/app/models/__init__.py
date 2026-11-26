@@ -485,6 +485,23 @@ class Defense(TimestampMixin, Base):
         return self.scheduled_at + dt.timedelta(minutes=self.duration_minutes)
 
 
+class DefenseEmail(Base):
+    """Delivery record for one defense demo email."""
+
+    __tablename__ = "defense_emails"
+    __table_args__ = (Index("ix_defense_emails_pending", "status", "available_at", "email_id"),)
+
+    email_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    thesis_id: Mapped[int] = mapped_column(ForeignKey("theses.thesis_id", ondelete="CASCADE"))
+    recipient: Mapped[str] = mapped_column(String(254))
+    subject: Mapped[str] = mapped_column(String(150))
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="pending", server_default="pending")
+    attempts: Mapped[int] = mapped_column(SmallInteger, default=0, server_default="0")
+    available_at: Mapped[dt.datetime] = mapped_column(DateTime)
+    last_error: Mapped[str | None] = mapped_column(String(100))
+
+
 # ----------------------------------------------------------------------- users/audit
 
 
@@ -556,6 +573,7 @@ __all__ = [
     "AcademicPeriod",
     "Base",
     "Defense",
+    "DefenseEmail",
     "DefenseModality",
     "PlagiarismCheck",
     "Professor",
